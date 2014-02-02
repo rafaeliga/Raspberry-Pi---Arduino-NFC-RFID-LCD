@@ -1,3 +1,4 @@
+// LCD Libraries
 #include <FastIO.h>
 #include <I2CIO.h>
 #include <LCD.h>
@@ -8,26 +9,10 @@
 #include <LiquidCrystal_SR3W.h>
 #include <Wire.h>
 
-/**
-* Read a card using a mfrc522 reader on your SPI interface
-* Pin layout should be as follows (on Arduino Uno):
-* MOSI: Pin 11 / ICSP-4
-* MISO: Pin 12 / ICSP-1
-* SCK: Pin 13 / ISCP-3
-* SS: Pin 10
-* RST: Pin 9
-*
-* Script is based on the script of Miguel Balboa. 
-* New cardnumber is printed when card has changed. Only a dot is printed
-* if card is the same.
-*
-* @version 0.1
-* @author Henri de Jong
-* @since 06-01-2013
-*/
-
+// NFC RFID Libraries
 #include <SPI.h>
 #include <RFID.h>
+
 #include <Time.h>
 
 #define SS_PIN 10
@@ -67,6 +52,7 @@ char* concat(int int1, int int2, int int3, int int4, int int5) {
 
 void setup() { 
   Serial.begin(9600);
+  
   SPI.begin(); 
   rfid.init();
   lcd.begin (20, 4);
@@ -84,10 +70,7 @@ void setup() {
 void loop() {
     char* current_id;
     int skip_while = 1;
-//    gordo = 942321812526
-//    guizao = 2069496193
-//    rafa = 211191118134156
-//    julio = 243210116134211
+    String name = "";
 
     if (rfid.isCard()) {
       if (rfid.readCardSerial()) {
@@ -99,32 +82,34 @@ void loop() {
               serNum3 = rfid.serNum[3];
               serNum4 = rfid.serNum[4];
               current_id = concat(serNum0, serNum1, serNum2, serNum3, serNum4);
+              
+              current_id = "12345";
+              
               Serial.println(current_id);
+              
               lcd.print("Card ID:");
+              delay(1000);
+              
               lcd.setCursor(0,1);
               lcd.print(current_id);
+              
               while (skip_while) {
-                if ( Serial.available() ) {
-                  if (Serial.read()) {
+                while ( Serial.available() > 0 ) {
+                  char received = Serial.read();
+                  name += received; 
+                  
+                  // Process message when new line character is recieved
+                  if (received == '\n') {
+                    name.replace("\n", "");
+                    name = "Bem vindo " + name + "!";
+                    
                     lcd.clear();
-//                    switch (Serial.read()) {
-//                      case 1:
-//                        lcd.print("Usuario 1 logado!");
-//                      case 2:
-//                        lcd.print("Usuario 2 logado!");
-//                      case 3:
-//                        lcd.print("Usuario 3 logado!");
-//                      case 4:
-//                        lcd.print("Usuario 4 logado!");
-//                      default:
-//                        lcd.print("Nenhum usuario");
-//                    }
+                    lcd.print(name);
+                    
                     skip_while = 0;
-                  } else {
-                    lcd.print("Nothing");
                   }
                 }
-              } 
+              }
            } else {
              lcd.setCursor(0,3);
              lcd.print(".");
@@ -132,6 +117,7 @@ void loop() {
         }
     }
     rfid.halt();
+
 }
 
 
